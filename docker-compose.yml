@@ -37,7 +37,9 @@ services:
     depends_on:
       - backend
     ports:
-      - "3000:3000"
+      # Solo accesible desde este equipo. Para abrirla a la red o desplegarla, ponla detrás
+      # de un proxy con HTTPS (Caddy, nginx...) y activa SESSION_COOKIE_SECURE=true en .env
+      - "127.0.0.1:3000:3000"
 
 volumes:
   pgdata:

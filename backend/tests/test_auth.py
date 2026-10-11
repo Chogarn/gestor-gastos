@@ -60,6 +60,25 @@ def test_login_and_logout(client, app):
     assert other.get("/api/expenses").status_code == 401
 
 
+def test_logout_invalidates_copied_cookie(client, app):
+    """Una copia de la cookie (robada, o de otro dispositivo) deja de valer al cerrar sesión."""
+    thief = app.test_client()
+    thief.set_cookie("session", client.get_cookie("session").value)
+    assert thief.get("/api/auth/me").status_code == 200
+
+    assert client.post("/api/auth/logout").status_code == 204
+    assert thief.get("/api/auth/me").status_code == 401
+    assert thief.get("/api/expenses").status_code == 401
+
+    # Se puede volver a entrar con normalidad
+    assert login(client, "ana@example.com").status_code == 200
+    assert client.get("/api/auth/me").status_code == 200
+
+
+def test_logout_without_session_is_harmless(app):
+    assert app.test_client().post("/api/auth/logout").status_code == 204
+
+
 def test_login_rejects_bad_credentials(client, app):
     anonymous = app.test_client()
     wrong = login(anonymous, "ana@example.com", "otra-clave-larga")

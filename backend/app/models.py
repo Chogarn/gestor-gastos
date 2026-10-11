@@ -18,6 +18,9 @@ class User(db.Model):
         db.String(3), nullable=False, default=DEFAULT_CURRENCY, server_default=DEFAULT_CURRENCY
     )
     password_hash = db.Column(db.String(255), nullable=False)
+    # Va dentro de la cookie de sesión; cerrar sesión lo incrementa y así invalida las
+    # cookies emitidas antes (también una robada), aunque la cookie siga firmada.
+    session_version = db.Column(db.Integer, nullable=False, default=0, server_default="0")
     created_at = db.Column(
         db.DateTime(timezone=True), nullable=False, server_default=db.func.now()
     )

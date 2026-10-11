@@ -7,6 +7,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Sin privilegios de root: si alguien llegara a ejecutar código en el contenedor,
+# no podría modificar la aplicación ni el sistema
+RUN useradd --system --no-create-home app
+USER app
+
 ENV FLASK_APP=wsgi.py
 EXPOSE 5000
 

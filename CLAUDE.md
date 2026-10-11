@@ -43,9 +43,13 @@ flask db upgrade
 
 ### Auth: signed-cookie sessions, not JWT
 
-Login sets `session["user_id"]` and `session["pw"]` (a short hash of the password hash) via `start_session()` in `backend/app/auth.py`. Every protected blueprint registers `bp.before_request(require_login)`, which re-checks the user still exists **and** that `session["pw"]` still matches the current password hash — so changing your password invalidates every other session immediately, without a server-side session table. `require_login` stashes the user on `g.user`. Ownership checks go through `get_owned_or_404()`, which returns 404 (not 403) for another user's resource, so existence isn't leaked.
+Login sets `session["user_id"]` and `session["pw"]` (a short hash of the password hash) via `start_session()` in `backend/app/auth.py`. Every protected blueprint registers `bp.before_request(require_login)`, which re-checks the user still exists **and** that `session["pw"]` still matches the current password hash — so changing your password invalidates every other session immediately, without a server-side session table. Same idea for logout: `session["sv"]` must match `User.session_version`, and `logout` increments it — so logging out kills **every** copy of the cookie (all devices, or a stolen one), not just the current browser's; `session_user()` holds all three checks. `require_login` stashes the user on `g.user`. Ownership checks go through `get_owned_or_404()`, which returns 404 (not 403) for another user's resource, so existence isn't leaked.
 
 Rate limiting (Flask-Limiter, see `backend/app/routes/auth.py`) keys login attempts by **account** (`f"cuenta:{email}"`), not by IP: the Next.js rewrite proxy doesn't set `X-Forwarded-For`, so the backend only ever sees the proxy's own IP. Keep that in mind if you touch rate limiting — trusting `X-Forwarded-For` here would let anyone bypass the limit by spoofing the header.
+
+### Security headers and exposure
+
+`frontend/next.config.ts` sets CSP (no nonces — `'unsafe-inline'` scripts are needed by the theme script in `app/layout.tsx`; nonces would force every page to dynamic rendering), `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, and disables `X-Powered-By`. Adding any external origin (fonts, analytics, a CDN) means widening the CSP there. `docker-compose.yml` publishes the frontend on `127.0.0.1` only and both images run as non-root; deploying publicly means putting a TLS proxy in front and setting `SESSION_COOKIE_SECURE=true` (and then HSTS / `upgrade-insecure-requests`, which aren't set because the app is served over plain HTTP today). Backend deps are pinned exactly in `requirements.txt`; check with `pip-audit -r requirements.txt` and `npm audit --omit=dev`.
 
 ### Same-origin API proxy
 

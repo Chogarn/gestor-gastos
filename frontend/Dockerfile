@@ -18,5 +18,7 @@ ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
+# Sin privilegios de root (la imagen de node ya trae el usuario `node`)
+USER node
 EXPOSE 3000
 CMD ["node", "server.js"]

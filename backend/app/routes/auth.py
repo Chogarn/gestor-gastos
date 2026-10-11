@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from .. import db, limiter
-from ..auth import require_login, start_session
+from ..auth import require_login, session_user, start_session
 from ..models import Category, Expense, Income, User
 from ..schemas import ValidationError, password_error
 from ..seed import seed_categories
@@ -92,6 +92,12 @@ def login():
 
 @bp.post("/auth/logout")
 def logout():
+    # Borrar la cookie no basta: es una sesión firmada sin tabla en el servidor, así que una
+    # copia (robada, o en otro dispositivo) seguiría valiendo. Subir la versión las invalida
+    # todas: cerrar sesión cierra la sesión en todos los dispositivos.
+    if (user := session_user()) is not None:
+        user.session_version += 1
+        db.session.commit()
     session.clear()
     return "", 204
 
