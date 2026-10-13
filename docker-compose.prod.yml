@@ -1,0 +1,39 @@
+# Producción con HTTPS. Se usa junto al compose base:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Requiere DOMAIN en .env (ver .env.example) y los puertos 80/443 abiertos.
+#
+# Sobre el límite de intentos de login: Caddy agrega X-Forwarded-For, pero entre Caddy y
+# Flask está Next.js, que reenvía /api/* sin conservar esa cabecera. Por eso NO se activa
+# TRUSTED_PROXIES: el backend ve siempre la IP del proxy de Next y el límite se aplica por
+# cuenta (no por IP) a propósito. Confiar en X-Forwarded-For permitiría saltarse el límite
+# falsificando la cabecera. Ver "Auth" en CLAUDE.md.
+services:
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?Define DOMAIN en el archivo .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data # certificados: no perderlo o se piden de nuevo a Let's Encrypt
+      - caddy_config:/config
+    depends_on:
+      - frontend
+
+  frontend:
+    # En prod el frontend no se publica: solo Caddy lo alcanza por la red interna.
+    # `!reset` quita el puerto 127.0.0.1:3000 del compose base (requiere Compose 2.24+).
+    ports: !reset []
+
+  backend:
+    environment:
+      # La cookie de sesión solo viaja por HTTPS
+      SESSION_COOKIE_SECURE: "true"
+
+volumes:
+  caddy_data:
+  caddy_config:

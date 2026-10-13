@@ -1,0 +1,10 @@
+# El dominio llega por la variable de entorno DOMAIN (ver docker-compose.prod.yml).
+# Caddy obtiene y renueva el certificado solo, y redirige HTTP→HTTPS sin configurarlo.
+{$DOMAIN} {
+	encode zstd gzip
+
+	# Sin includeSubDomains ni preload: no sabemos qué otros subdominios hay.
+	header Strict-Transport-Security "max-age=31536000"
+
+	reverse_proxy frontend:3000
+}
