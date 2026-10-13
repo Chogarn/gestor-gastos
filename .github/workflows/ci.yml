@@ -18,7 +18,7 @@ jobs:
         working-directory: backend
     steps:
       - name: Descargar el código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Configurar Python 3.12
         uses: actions/setup-python@v5
@@ -48,7 +48,7 @@ jobs:
         working-directory: frontend
     steps:
       - name: Descargar el código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Configurar Node 22
         uses: actions/setup-node@v4
