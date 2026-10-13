@@ -99,12 +99,28 @@ def test_change_password_wrong_current(client):
 
 @pytest.mark.parametrize(
     "new,expected",
-    [("corta", "new_password"), (PASSWORD, "new_password"), (None, "new_password")],
+    [
+        ("corta", "new_password"),
+        (PASSWORD, "new_password"),
+        (None, "new_password"),
+        ("qwerty123", "new_password"),  # contraseña común
+        ("zzzzzzzzzz", "new_password"),  # un solo carácter repetido
+    ],
 )
 def test_change_password_validation(client, new, expected):
     response = change_password(client, new=new)
     assert response.status_code == 400
     assert expected in response.json["errors"]
+
+
+def test_change_password_rejects_own_email(app):
+    client = app.test_client()
+    assert register(client, "maria@example.com").status_code == 201
+    response = change_password(client, new="Maria-2024-nueva")
+    assert response.status_code == 400
+    assert "new_password" in response.json["errors"]
+    # Una contraseña sin el email sigue funcionando
+    assert change_password(client).status_code == 204
 
 
 def test_change_password_closes_other_sessions(client, app):

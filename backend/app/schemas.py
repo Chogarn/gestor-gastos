@@ -1,5 +1,6 @@
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
 
 
 class ValidationError(Exception):
@@ -85,11 +86,31 @@ MAX_PASSWORD = 128
 MAX_NAME = 80
 
 
-def password_error(password):
-    """Mensaje de error si la contraseña no cumple los límites de longitud; None si es válida."""
-    if isinstance(password, str) and MIN_PASSWORD <= len(password) <= MAX_PASSWORD:
-        return None
-    return f"Debe tener entre {MIN_PASSWORD} y {MAX_PASSWORD} caracteres"
+# Contraseñas muy comunes (minúsculas, una por línea); se cargan una sola vez al importar.
+COMMON_PASSWORDS = frozenset(
+    line.strip()
+    for line in (Path(__file__).parent / "common_passwords.txt").read_text(encoding="utf-8").splitlines()
+    if line.strip()
+)
+
+
+def password_error(password, email=None):
+    """Mensaje de error si la contraseña no es aceptable; None si es válida.
+
+    Además de la longitud, rechaza las contraseñas muy comunes, un solo carácter repetido
+    y las que contienen la parte local del email (si tiene 4+ caracteres).
+    """
+    if not (isinstance(password, str) and MIN_PASSWORD <= len(password) <= MAX_PASSWORD):
+        return f"Debe tener entre {MIN_PASSWORD} y {MAX_PASSWORD} caracteres"
+    lowered = password.lower()
+    if lowered in COMMON_PASSWORDS:
+        return "Es una contraseña demasiado común; elige otra"
+    if len(set(password)) == 1:
+        return "No puede ser un único carácter repetido"
+    local = (email or "").partition("@")[0].lower()
+    if len(local) >= 4 and local in lowered:
+        return "No puede contener tu email"
+    return None
 
 
 # Lista curada, no las ~180 de ISO 4217 (se puede ampliar). Debe coincidir con

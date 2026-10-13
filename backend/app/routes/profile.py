@@ -52,7 +52,7 @@ def change_password():
     if not isinstance(current, str) or not check_password_hash(g.user.password_hash, current):
         # 400 y no 401: un 401 haría que la app creyera que la sesión caducó
         errors["current_password"] = "La contraseña actual no es correcta"
-    elif message := password_error(new):
+    elif message := password_error(new, g.user.email):
         errors["new_password"] = message
     elif new == current:
         errors["new_password"] = "Debe ser distinta de la actual"

@@ -50,7 +50,7 @@ def register():
     errors = {}
     if not EMAIL_RE.match(email) or len(email) > 254:
         errors["email"] = "Introduce un email válido"
-    if message := password_error(password):
+    if message := password_error(password, email):
         errors["password"] = message
     if errors:
         raise ValidationError(errors)

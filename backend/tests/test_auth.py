@@ -34,6 +34,9 @@ def test_password_is_hashed(client, app):
         ("x@example.com", "corta", "password"),
         ("x@example.com", "a" * 129, "password"),
         ("x@example.com", None, "password"),
+        ("x@example.com", "Password123", "password"),  # contraseña común
+        ("x@example.com", "aaaaaaaa", "password"),  # un solo carácter repetido
+        ("maria.lopez@example.com", "MARIA.LOPEZ-2024", "password"),  # contiene el email
     ],
 )
 def test_register_validation(app, email, password, field):
@@ -42,6 +45,12 @@ def test_register_validation(app, email, password, field):
     )
     assert response.status_code == 400
     assert field in response.json["errors"]
+
+
+def test_register_allows_short_email_local_part_in_password(app):
+    # La parte local de menos de 4 caracteres no cuenta como "contiene el email"
+    response = register(app.test_client(), "ana@example.com", "ana-clave-larga-9")
+    assert response.status_code == 201
 
 
 def test_register_duplicate_email(client, app):
